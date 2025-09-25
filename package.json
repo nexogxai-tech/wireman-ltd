@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "express": "^4.18.2",
-    "googleapis": "^131.0.0"
+    "googleapis": "^131.0.0",
+    "cors": "^2.8.5"
   }
 }
