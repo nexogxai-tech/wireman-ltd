@@ -1,22 +1,24 @@
 import express from "express";
 import bodyParser from "body-parser";
 import { google } from "googleapis";
+import fs from "fs";
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+
 app.use(bodyParser.json());
 
-// Load Google Auth with service account
+// Load service account key
 const auth = new google.auth.GoogleAuth({
-  keyFile: "service-account.json", // Make sure this file is in project root
+  keyFile: "service-account.json", // make sure this file exists in root
   scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
 const sheets = google.sheets({ version: "v4", auth });
 
-// Replace with your actual Google Sheet ID
-const SPREADSHEET_ID = "1P5bgV1aQhjClyvry6H4E9-XSeKkF5bEFbr2elQk1B1E";
+const SPREADSHEET_ID = "1P5bgV1aQhjClyvry6H4E9-XSeKkF5bEFbr2elQk1B1E"; // your sheet id
 
-// POST /log endpoint
+// POST route to log call
 app.post("/log", async (req, res) => {
   try {
     const { name, phone, address, details, type } = req.body;
@@ -25,16 +27,14 @@ app.post("/log", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // type decides which tab to use
+    // Decide which sheet tab to use
     let sheetName;
-    if (type.toLowerCase() === "job") sheetName = "Job";
-    else if (type.toLowerCase() === "emergency") sheetName = "Emergency";
-    else if (type.toLowerCase() === "inquiry") sheetName = "Inquiry";
-    else {
-      return res.status(400).json({ error: "Invalid type (must be Job, Emergency, or Inquiry)" });
-    }
+    if (type === "Job") sheetName = "Job";
+    else if (type === "Emergency") sheetName = "Emergency";
+    else if (type === "Inquiry") sheetName = "Inquiry";
+    else return res.status(400).json({ error: "Invalid type" });
 
-    // Append row (Name, Phone, Address, Details)
+    // Append row
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: `${sheetName}!A:D`,
@@ -45,20 +45,17 @@ app.post("/log", async (req, res) => {
     });
 
     res.json({ success: true, message: `Entry saved to ${sheetName} tab` });
-  } catch (error) {
-    console.error("Error saving to Google Sheets:", error);
+  } catch (err) {
+    console.error("Error saving to Google Sheets:", err);
     res.status(500).json({ error: "Failed to log entry" });
   }
 });
 
-// Root test route
+// Root check
 app.get("/", (req, res) => {
-  res.send("Wire-Man Electric Ltd API is running 🚀");
+  res.send("Wire-Man Electric Ltd. API is running ✅");
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
-
