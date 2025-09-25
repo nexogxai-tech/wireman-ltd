@@ -1,16 +1,16 @@
 {
-  "name": "wireman-api",
+  "name": "mcp-sheets-server",
   "version": "1.0.0",
+  "description": "MCP Google Sheets Server for Wireman Electric Ltd call logging",
   "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "body-parser": "^1.20.2",
-    "googleapis": "^131.0.0",
-    "dotenv": "^16.3.1"
+    "cors": "^2.8.5",
+    "googleapis": "^131.0.0"
   }
 }
