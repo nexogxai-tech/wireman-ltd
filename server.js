@@ -27,7 +27,7 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: "v4", auth });
 
 // Your Google Sheet ID
-const SPREADSHEET_ID = "https://docs.google.com/spreadsheets/d/1P5bgV1aQhjClyvry6H4E9-XSeKkF5bEFbr2elQk1B1E/edit?gid=774242830#gid=774242830"; // replace with actual sheet ID
+const SPREADSHEET_ID = "1P5bgV1aQhjClyvry6H4E9-XSeKkF5bEFbr2elQk1B1E"; // replace with actual sheet ID
 
 // --------------------
 // Routes
