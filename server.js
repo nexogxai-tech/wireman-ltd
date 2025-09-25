@@ -1,13 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
-import { google } from "googleapis";
 import cors from "cors";
-
-// Load .env only when NOT in production
-if (process.env.NODE_ENV !== "production") {
-  const dotenv = await import("dotenv");
-  dotenv.config();
-}
+import { google } from "googleapis";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,46 +9,46 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Auth using environment variable
+// Load Google credentials from env
+let creds = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+
+// Fix private_key in case it's stored with literal \n
+if (creds.private_key.includes("\\n")) {
+  creds.private_key = creds.private_key.replace(/\\n/g, "\n");
+}
+
 const auth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
+  credentials: creds,
   scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
 const sheets = google.sheets({ version: "v4", auth });
+
+// Spreadsheet ID (must be plain ID, not full URL)
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
-// POST route to log call
 app.post("/log", async (req, res) => {
   try {
-    const { full_name, phone, address, details, tab } = req.body;
+    const { name, phone, address, details, type } = req.body;
 
-    if (!full_name || !phone || !address || !details || !tab) {
+    if (!name || !phone || !address || !details || !type) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // Decide sheet tab
     let sheetName;
-    if (tab === "Job") sheetName = "Job";
-    else if (tab === "Emergency") sheetName = "Emergency";
-    else if (tab === "Inquiry") sheetName = "Inquiry";
-    else return res.status(400).json({ error: "Invalid tab" });
+    if (type === "Job") sheetName = "Job";
+    else if (type === "Emergency") sheetName = "Emergency";
+    else if (type === "Inquiry") sheetName = "Inquiry";
+    else return res.status(400).json({ error: "Invalid type" });
 
-    const now = new Date();
-    const timestamp = now.toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-
+    // Append row
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: `${sheetName}!A:E`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: [[timestamp, full_name, phone, address, details]],
+        values: [[`${new Date().toLocaleString()}`, name, phone, address, details]],
       },
     });
 
@@ -65,7 +59,6 @@ app.post("/log", async (req, res) => {
   }
 });
 
-// Root check
 app.get("/", (req, res) => {
   res.send("Wire-Man Electric Ltd. API is running ✅");
 });
