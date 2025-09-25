@@ -19,9 +19,9 @@ const SPREADSHEET_ID = "1P5bgV1aQhjClyvry6H4E9-XSeKkF5bEFbr2elQk1B1E";
 // POST /log endpoint
 app.post("/log", async (req, res) => {
   try {
-    const { name, phone, details, category } = req.body;
+    const { name, phone, details, address, category } = req.body;
 
-    if (!name || !phone || !details || !category) {
+    if (!name || !phone || !details || !address || !category) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -30,13 +30,13 @@ app.post("/log", async (req, res) => {
     if (category.toLowerCase() === "job") sheetName = "Job";
     if (category.toLowerCase() === "emergency") sheetName = "Emergency";
 
-    // Append row
+    // Append row (now 5 columns: Name, Phone, Address, Details, Category)
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${sheetName}!A:D`,
+      range: `${sheetName}!A:E`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: [[name, phone, details, category]],
+        values: [[name, phone, address, details, category]],
       },
     });
 
@@ -57,3 +57,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
