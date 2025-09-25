@@ -1,75 +1,54 @@
 import express from "express";
-import cors from "cors";
 import bodyParser from "body-parser";
 import { google } from "googleapis";
+import dotenv from "dotenv";
+import fs from "fs";
 
+dotenv.config();
 const app = express();
-app.use(cors());
 app.use(bodyParser.json());
 
-// Root route for homepage test
-app.get("/", (req, res) => {
-  res.send("🚀 Wire-Man Electric Ltd. API is live! Use POST /log to send data.");
-});
-
-// Google Sheets Auth
-const creds = JSON.parse(process.env.GOOGLE_CREDENTIALS);
-
-// Fix private key formatting (Render stores \n as literal \\n)
-if (creds.private_key) {
-  creds.private_key = creds.private_key.replace(/\\n/g, "\n");
-}
+// Load credentials from service account key file
+const credentials = JSON.parse(fs.readFileSync("service-account.json"));
 
 const auth = new google.auth.GoogleAuth({
-  credentials: creds,
+  credentials,
   scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
 const sheets = google.sheets({ version: "v4", auth });
 
-// POST /log
+// Your Google Sheet ID (replace with yours!)
+const SPREADSHEET_ID = process.env.SHEET_ID;
+
+// Endpoint to log call details
 app.post("/log", async (req, res) => {
   try {
-    const body = req.body;
+    const { tab, full_name, phone, details } = req.body;
 
-    const name = body.name || body.full_name;
-    const phone = body.phone;
-    const type = body.type || body.tab;
-    const details =
-      body.details ||
-      (body.task && body.address
-        ? `${body.task} at ${body.address}`
-        : body.task || body.address);
-
-    if (!name || !phone || !details || !type) {
+    if (!tab || !full_name || !phone || !details) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Map tab/type → correct Google Sheet tab
-    let sheetName = "Sheet1"; // fallback
-    if (type.toLowerCase() === "job") sheetName = "Job";
-    else if (type.toLowerCase() === "emergency") sheetName = "Emergency";
-    else if (type.toLowerCase() === "inquiry") sheetName = "Inquiry";
+    // Timestamp
+    const timestamp = new Date().toLocaleString();
 
-    // Append row
-    const row = [name, phone, details, type, new Date().toISOString()];
+    // Add new row to the correct tab
     await sheets.spreadsheets.values.append({
-      spreadsheetId: process.env.SPREADSHEET_ID,
-      range: `${sheetName}!A:E`,
-      valueInputOption: "RAW",
-      resource: { values: [row] },
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${tab}!A:D`, // Timestamp, Name, Phone, Details
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[timestamp, full_name, phone, details]],
+      },
     });
 
-    res.json({ success: true, message: `Entry saved to ${sheetName}` });
-  } catch (err) {
-    console.error(
-      "Error saving to Google Sheets:",
-      err.response?.data || err.message || err
-    );
+    res.json({ success: true, message: "Entry logged successfully" });
+  } catch (error) {
+    console.error("Error saving to Google Sheets:", error);
     res.status(500).json({ error: "Failed to log entry" });
   }
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
