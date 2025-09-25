@@ -14,7 +14,11 @@ app.get("/", (req, res) => {
 
 // Google Sheets Auth
 const creds = JSON.parse(process.env.GOOGLE_CREDENTIALS);
-creds.private_key = creds.private_key.replace(/\\n/g, "\n");
+
+// Fix private key formatting (Render stores \n as literal \\n)
+if (creds.private_key) {
+  creds.private_key = creds.private_key.replace(/\\n/g, "\n");
+}
 
 const auth = new google.auth.GoogleAuth({
   credentials: creds,
@@ -41,21 +45,31 @@ app.post("/log", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // Map tab/type → correct Google Sheet tab
+    let sheetName = "Sheet1"; // fallback
+    if (type.toLowerCase() === "job") sheetName = "Job";
+    else if (type.toLowerCase() === "emergency") sheetName = "Emergency";
+    else if (type.toLowerCase() === "inquiry") sheetName = "Inquiry";
+
+    // Append row
     const row = [name, phone, details, type, new Date().toISOString()];
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SPREADSHEET_ID,
-      range: "Sheet1!A:E",
+      range: `${sheetName}!A:E`,
       valueInputOption: "RAW",
       resource: { values: [row] },
     });
 
-    res.json({ success: true, message: "Entry saved to Google Sheet" });
+    res.json({ success: true, message: `Entry saved to ${sheetName}` });
   } catch (err) {
-    console.error("Error saving to Google Sheets:", err);
+    console.error(
+      "Error saving to Google Sheets:",
+      err.response?.data || err.message || err
+    );
     res.status(500).json({ error: "Failed to log entry" });
   }
 });
 
+// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
-
