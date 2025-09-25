@@ -1,11 +1,16 @@
 {
-  "name": "wireman-ltd",
+  "name": "wireman-api",
   "version": "1.0.0",
   "main": "server.js",
   "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
-    "express": "^4.18.2",
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
     "googleapis": "^131.0.0",
-    "cors": "^2.8.5"
+    "dotenv": "^16.3.1"
   }
 }
