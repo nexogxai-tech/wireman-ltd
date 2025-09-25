@@ -76,14 +76,51 @@ app.get("/mcp/tools", (req, res) => {
     tools: [
       {
         name: "Log",
-        description: "Send call details (Job, Emergency, or Inquiry) to the Wireman Electric Google Sheet",
+        description:
+          "Log a caller’s details into the Wireman Electric Google Sheet. Automatically records the timestamp and requires the caller’s phone, address, name, request details, and which tab to log into (Job, Emergency, or Inquiry).",
         parameters: [
-          "Timestamp",
-          "Phone",
-          "Address",
-          "Name",
-          "Details",
-          "tab"
+          {
+            id: "Timestamp",
+            type: "string",
+            value_type: "constant",
+            description: "Record the time of the call automatically.",
+            required: true
+          },
+          {
+            id: "Phone",
+            type: "string",
+            value_type: "llm_prompt",
+            description: "Phone number of the caller.",
+            required: true
+          },
+          {
+            id: "Address",
+            type: "string",
+            value_type: "llm_prompt",
+            description: "Address where the work or issue is located. Required for jobs and emergencies.",
+            required: true
+          },
+          {
+            id: "Name",
+            type: "string",
+            value_type: "llm_prompt",
+            description: "Full name of the caller.",
+            required: true
+          },
+          {
+            id: "Details",
+            type: "string",
+            value_type: "llm_prompt",
+            description: "Details about the request, including work type, issue, or inquiry.",
+            required: true
+          },
+          {
+            id: "tab",
+            type: "string",
+            value_type: "llm_prompt",
+            description: "Which sheet tab to log into (Job, Emergency, or Inquiry).",
+            required: true
+          }
         ]
       }
     ]
@@ -106,7 +143,7 @@ app.post("/mcp/run/:tool", async (req, res) => {
       const timestamp = new Date().toISOString();
       const { Phone, Address, Name, Details, tab } = payload;
 
-      const range = `${tab}!A:F`; // assumes tabs are named Job, Emergency, Inquiry
+      const range = `${tab}!A:F`; // expects tabs named Job, Emergency, Inquiry
       const values = [[timestamp, Phone, Address, Name, Details, tab]];
 
       await sheets.spreadsheets.values.append({
@@ -135,7 +172,9 @@ app.post("/mcp/run/:tool", async (req, res) => {
  * HEALTH & INFO
  * ---------------------------
  */
-app.get("/health", (req, res) => res.json({ status: "ok", uptime: process.uptime() }));
+app.get("/health", (req, res) =>
+  res.json({ status: "ok", uptime: process.uptime() })
+);
 app.get("/server-info", (req, res) =>
   res.json({ name: "MCP Google Sheets Server", version: "1.0.0", port: PORT })
 );
