@@ -1,4 +1,3 @@
-// server.js
 import express from "express";
 import { google } from "googleapis";
 import cors from "cors";
