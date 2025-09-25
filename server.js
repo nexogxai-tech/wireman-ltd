@@ -1,9 +1,13 @@
-import dotenv from "dotenv";
-dotenv.config();
 import express from "express";
 import bodyParser from "body-parser";
 import { google } from "googleapis";
 import cors from "cors";
+
+// Load .env only when NOT in production
+if (process.env.NODE_ENV !== "production") {
+  const dotenv = await import("dotenv");
+  dotenv.config();
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
