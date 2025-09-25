@@ -1,30 +1,50 @@
+// server.js
 import express from "express";
 import bodyParser from "body-parser";
+import { google } from "googleapis";
 
 const app = express();
 app.use(bodyParser.json());
 
-// POST /log endpoint
+// Authenticate using credentials stored in Render env variable
+const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+
+const auth = new google.auth.GoogleAuth({
+  credentials,
+  scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+});
+
+const sheets = google.sheets({ version: "v4", auth });
+
+// Replace with your Google Sheet ID
+const SPREADSHEET_ID = "YOUR_SPREADSHEET_ID_HERE";
+
+// Endpoint to receive data and write to Google Sheets
 app.post("/log", async (req, res) => {
-  const { tab, full_name, phone, address, details } = req.body;
+  try {
+    const { tab, full_name, phone, details } = req.body;
 
-  console.log("📞 New entry received:");
-  console.log("Tab:", tab);
-  console.log("Full Name:", full_name);
-  console.log("Phone:", phone);
-  console.log("Address:", address);
-  console.log("Details:", details);
+    if (!tab || !full_name || !phone || !details) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
-  // TODO: Add Google Sheets integration here
-  res.json({ success: true, message: "Entry logged successfully" });
+    // Append row to the correct tab
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${tab}!A:D`, // Tab with 4 columns: Full Name, Phone, Details, Timestamp
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[full_name, phone, details, new Date().toLocaleString()]],
+      },
+    });
+
+    res.json({ success: true, message: "Data logged to Google Sheets" });
+  } catch (error) {
+    console.error("Error logging to sheet:", error);
+    res.status(500).json({ error: "Failed to log data" });
+  }
 });
 
-// Root route
-app.get("/", (req, res) => {
-  res.send("✅ Wire-Man Electric Ltd. server is running!");
-});
-
+// Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
