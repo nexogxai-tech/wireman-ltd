@@ -15,13 +15,12 @@ app.use(bodyParser.json());
  * ---------------------------
  */
 const auth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS), // put service account JSON in Render env var
+  credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
   scopes: ["https://www.googleapis.com/auth/spreadsheets"]
 });
 
 const sheets = google.sheets({ version: "v4", auth });
-
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID; // put your sheet ID in Render env var
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
 /**
  * ---------------------------
@@ -38,6 +37,8 @@ app.get("/mcp", (req, res) => {
           body { font-family: Arial, sans-serif; margin: 20px; }
           h1 { color: #333; }
           .status { padding: 10px; margin: 10px 0; border: 1px solid #ccc; background: #e7f7e7; }
+          .tools { margin-top: 20px; }
+          ul { line-height: 1.6; }
         </style>
       </head>
       <body>
@@ -48,10 +49,12 @@ app.get("/mcp", (req, res) => {
         <h2>MCP Endpoint</h2>
         <code>${req.protocol}://${req.get("host")}/mcp</code>
 
-        <h2>Available Tools</h2>
-        <ul>
-          <li><strong>Log:</strong> Send call details (Job, Emergency, or Inquiry) into the correct Google Sheet tab.</li>
-        </ul>
+        <div class="tools">
+          <h2>Available Tools</h2>
+          <ul>
+            <li><strong>Log:</strong> Send call details (Job, Emergency, or Inquiry) to the Wireman Electric Google Sheet</li>
+          </ul>
+        </div>
 
         <h2>Other Endpoints</h2>
         <ul>
@@ -103,9 +106,7 @@ app.post("/mcp/run/:tool", async (req, res) => {
       const timestamp = new Date().toISOString();
       const { Phone, Address, Name, Details, tab } = payload;
 
-      // Pick the correct sheet tab (must match tab names in your sheet: Job, Emergency, Inquiry)
-      const range = `${tab}!A:F`;
-
+      const range = `${tab}!A:F`; // assumes tabs are named Job, Emergency, Inquiry
       const values = [[timestamp, Phone, Address, Name, Details, tab]];
 
       await sheets.spreadsheets.values.append({
@@ -143,3 +144,4 @@ app.get("/server-info", (req, res) =>
 app.listen(PORT, () => {
   console.log(`🚀 MCP Sheets server running at http://localhost:${PORT}`);
 });
+
